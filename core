@@ -55,7 +55,7 @@ install() {
     v2.8.5)
       case $arch in
       arm64 | amd64)
-        cache_file_checksum_expect="cbe42cf8ecc33b8e0c23849e2743256a8dcd1895c936b3d73d5ba96c5671bc6d"
+        cache_file_checksum_expect="e89538a134738dfa71d5b80f8e4658cb812e0803115a760629380b851b608782"
         ;;
       esac
       ;;
@@ -104,14 +104,14 @@ install() {
     ;;
   esac
 
-  # actve
-  log::info "[$(timestamp)][desktop] active app without warning which app is damaged and can't be opened ..."
-  sudo xattr -rd com.apple.quarantine /Applications/${app_name}
-  if [ "$?" != "0" ]; then
-    log::error "[$(timestamp)][desktop] failed to active app: ${app_name} (command: sudo xattr -rd com.apple.quarantine /Applications/${app_name})."
-    return 1
-  fi
-  log::warn "[$(timestamp)][desktop] if it still has warning, please go to System Preferences -> Security & Privacy -> General, and click Open Anyway button."
+  # # actve
+  # log::info "[$(timestamp)][desktop] active app without warning which app is damaged and can't be opened ..."
+  # sudo xattr -rd com.apple.quarantine /Applications/${app_name}
+  # if [ "$?" != "0" ]; then
+  #   log::error "[$(timestamp)][desktop] failed to active app: ${app_name} (command: sudo xattr -rd com.apple.quarantine /Applications/${app_name})."
+  #   return 1
+  # fi
+  # log::warn "[$(timestamp)][desktop] if it still has warning, please go to System Preferences -> Security & Privacy -> General, and click Open Anyway button."
 
   # clean
   log::info "[$(timestamp)][desktop][$name] cleaning ..."
