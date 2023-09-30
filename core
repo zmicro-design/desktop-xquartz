@@ -1,0 +1,121 @@
+#!/bin/bash
+
+install() {
+  # prepare vars
+  local name="$DESKTOP_CORE_NAME"
+
+  log::info "[$(timestamp)][desktop][$name] preparing ..."
+
+  # get system os/arch
+  local os="$DESKTOP_OS"
+  local arch="$DESKTOP_OS_ARCH"
+  local kernel="$DESKTOP_OS_KERNEL"
+  local platform="$DESKTOP_OS_PLATFORM"
+  # usr_bin_dir
+  local usr_bin_dir="$DESKTOP_USER_BIN_DIR"
+  local cache_dir="$DESKTOP_CACHE_DIR"
+  local tmp_dir="$DESKTOP_TMP_DIR"
+
+  #
+  case $platform in
+  darwin) ;;
+  *)
+    log::error "[$(timestamp)] unsupport platform: $platform"
+    return 1
+    ;;
+  esac
+
+  # case $arch in
+  # arm64) ;;
+
+  # amd64)
+  #   arch="x86_64"
+  #   ;;
+  # *)
+  #   log::error "[$(timestamp)] unsupport arch: $arch"
+  #   return 1
+  #   ;;
+  # esac
+  # #
+
+  # files
+  local cache_file="$cache_dir/$DESKTOP_CORE_VERSION.pkg"
+  # local source_bin_file="./$name"
+
+  # prepare context
+  log::info "[$(timestamp)][desktop][$name] context: $tmp_dir ..."
+  cd $tmp_dir
+
+  local is_cached="false"
+  if [ -f "$cache_file" ]; then
+    local cache_file_checksum=$(os::sha256 $cache_file)
+    local cache_file_checksum_expect=""
+
+    case $DESKTOP_CORE_VERSION in
+    v2.8.5)
+      case $arch in
+      arm64 | amd64)
+        cache_file_checksum_expect="cbe42cf8ecc33b8e0c23849e2743256a8dcd1895c936b3d73d5ba96c5671bc6d"
+        ;;
+      esac
+      ;;
+    esac
+
+    if [ "$cache_file_checksum" = "$cache_file_checksum_expect" ]; then
+      is_cached="true"
+    fi
+  fi
+
+  if [ "$is_cached" = "true" ]; then
+    log::info "[$(timestamp)][desktop][$name] found cache at $cache_file ..."
+  else
+    # reference: https://github.com/9seconds/iterm2/releases
+    # example:
+    #   https://github.com/XQuartz/XQuartz/releases/download/XQuartz-2.8.5/XQuartz-2.8.5.pkg
+    # generate url
+    local url=""
+    case $arch in
+    arm64 | amd64)
+      url="${DESKTOP_CORE_RELEASE_DOWNLOAD}/XQuartz-${DESKTOP_CORE_VERSION#v}/XQuartz-${DESKTOP_CORE_VERSION#v}.pkg"
+      ;;
+    *)
+      log::error "[$(timestamp)] unsupport arch: $arch"
+      return 1
+      ;;
+    esac
+
+    log::debug "[$(timestamp)][desktop][$name][$kernel][$arch] url: $url, file: ${cache_file}, tmp_dir: $tmp_dir"
+
+    # download
+    log::info "[$(timestamp)][desktop][$name] downloading from $url ..."
+    os::download $cache_file $url
+  fi
+
+  local app_name="XQuartz.app"
+  # install
+  log::info "[$(timestamp)][desktop][$name] installing $cache_file ..."
+  case $arch in
+  arm64 | amd64)
+    install::pkg $cache_file ${name}
+    ;;
+  *)
+    log::error "[$(timestamp)] unsupport arch: $arch"
+    return 1
+    ;;
+  esac
+
+  # actve
+  log::info "[$(timestamp)][desktop] active app without warning which app is damaged and can't be opened ..."
+  sudo xattr -rd com.apple.quarantine /Applications/${app_name}
+  if [ "$?" != "0" ]; then
+    log::error "[$(timestamp)][desktop] failed to active app: ${app_name} (command: sudo xattr -rd com.apple.quarantine /Applications/${app_name})."
+    return 1
+  fi
+  log::warn "[$(timestamp)][desktop] if it still has warning, please go to System Preferences -> Security & Privacy -> General, and click Open Anyway button."
+
+  # clean
+  log::info "[$(timestamp)][desktop][$name] cleaning ..."
+  rm -rf $tmp_dir
+}
+
+export -f install
